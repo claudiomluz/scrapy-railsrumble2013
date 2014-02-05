@@ -14,4 +14,5 @@ class RailsRumble2013Item(Item):
     avatar = Field()
     competitor = Field()
     github = Field()
+    location = Field()
 

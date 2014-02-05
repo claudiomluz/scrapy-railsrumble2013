@@ -7,7 +7,7 @@ from railsrumble2013.items import RailsRumble2013Item
 
 class RailsRumble2013Spider(Spider):
    name = "railsrumble2013"
-   allowed_domains = ["http://railsrumble.com/"]
+   allowed_domains = ["railsrumble.com", "github.com"]
    start_urls = [
        "http://railsrumble.com/participants",
        "http://railsrumble.com/participants?page=2",
@@ -36,7 +36,7 @@ class RailsRumble2013Spider(Spider):
        "http://railsrumble.com/participants?page=25",
        "http://railsrumble.com/participants?page=26",
        "http://railsrumble.com/participants?page=27",
-       "http://railsrumble.com/participants?page=28"
+       "http://railsrumble.com/participants?page=28"  
    ]
 
    def parse(self, response):
@@ -52,25 +52,33 @@ class RailsRumble2013Spider(Spider):
            item['avatar'] = person.xpath('span/img/@src').extract()[0].strip()
            item['href'] = person.xpath('@href').extract()[0].strip()
            
-           print urlparse.urljoin('http://railsrumble.com', item['href'])
-
-           yield Request(urlparse.urljoin('http://railsrumble.com', item['href']), meta = {'item':item}, callback=self.parse_person)
-
-           #items.append(item)
-       #return items
-
+           url = urlparse.urljoin('http://railsrumble.com', item['href'])
+           yield Request(url, meta = {'item':item}, callback=self.parse_person)
 
 
    def parse_person(self, response):
        sel = Selector(response)
        details = sel.xpath('//div[@id="details"]')
-       item = response.request.meta['item']
-       item['competitor'] = person.xpath('/ul/li[1]/a/text()').extract()[0].strip()
-       item['github'] = person.xpath('/ul/li[2]/a/@href').extract()[0].strip()
 
-       print item['competitor']
-       print item['github']
+       item = response.request.meta['item']
+       item['competitor'] = details.xpath('ul/li[1]/a/text()').extract()[0].strip()
+       url_github = details.xpath('ul/li[2]/a/@href').extract()[0].strip()
+       item['github'] = url_github
        
+       #yield item
+       yield Request(url_github, meta = {'item':item}, callback=self.parse_github)
+
+
+
+   def parse_github(self, response):
+       sel = Selector(response)
+       item = response.request.meta['item']
+       location = sel.xpath('//ul[@class="vcard-details"]/li[@itemprop="homeLocation"]/text()').extract()
+       if location:
+          item['location'] = location[0].strip()
+       else:
+          item['location'] = "not declared"
        yield item
+
 
 
